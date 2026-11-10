@@ -4,21 +4,21 @@ buildscript {
         cmpayVersion = '4.13.x'
         versionMngUrl = "http://gitlab.devops.cmft/publicProject/lemon/snippets/34/raw"
         mavenUrl = 'http://nexus.devops.cmft/repository/maven-public/'
-        yidongyunUrl = 'https://ecloud.10086.cn/api/query/developer/nexus/repository/eCloudSDK/'
     }
+
     repositories {
         maven {
             url = "${mavenUrl}"
             allowInsecureProtocol = true
         }
-        maven { url = "${yidongyunUrl}" }
     }
+
     apply from: resources.text.fromInsecureUri(versionMngUrl)
 
 }
 
 plugins {
-    id 'org.springframework.boot' version '4.1.2' apply false
+    id 'com.cmpay.platform' version "${cmpayVersion}" apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
     id 'io.freefair.maven-optional' version '8.2.0' apply false
     id 'io.freefair.lombok' version '8.2.0' apply false
@@ -26,12 +26,8 @@ plugins {
 
 allprojects {
     repositories {
-        mavenCentral()
-        maven { url = 'https://maven.aliyun.com/repository/public' }
-
-        // 如果你们发布 interface/constant 还需要内部仓库，保留这一个即可
         maven {
-            url = 'http://nexus.devops.cmft/repository/maven-public/'
+            url = "${mavenUrl}"
             allowInsecureProtocol = true
         }
     }
@@ -40,6 +36,7 @@ allprojects {
 subprojects {
     apply plugin: 'java-library'
     apply plugin: 'idea'
+    apply plugin: 'com.cmpay.platform'
     apply plugin: 'io.freefair.maven-optional'
     apply plugin: "io.freefair.lombok"
     apply plugin: 'io.spring.dependency-management'
@@ -47,11 +44,6 @@ subprojects {
     version = '1.0.0'
     group = 'com.cmft.firefly'
 
-    dependencyManagement {
-        imports {
-            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
-        }
-    }
 
     configurations.all {
         exclude group: 'org.springframework.cloud'
@@ -146,8 +138,7 @@ subprojects {
     }
 
     dependencies {
-        testImplementation 'org.springframework.boot:spring-boot-starter-test'
-        api("com.google.code.gson:gson:2.10.1")
+        testImplementation('com.cmpay:lemon-framework-starter-test')
     }
 
     // 使用现代化的 JDK 21 工具链配置
