@@ -1,0 +1,12 @@
+dependencies {
+    api project(":interface:firefly-mcp-gateway-interface")
+    implementation 'org.springframework.boot:spring-boot-starter-aspectj'
+    implementation 'com.baomidou:mybatis-plus-spring-boot4-starter:3.5.17'
+    // 导入 Spring AI 的 BOM（版本由你决定，匹配你的 Spring Boot）
+    implementation platform('org.springframework.ai:spring-ai-bom:2.0.2')
+    // 引入 MCP Server，此时不需要写版本号，BOM 会自动管理
+    implementation 'org.springframework.ai:spring-ai-starter-mcp-server-webmvc'
+    implementation 'org.apache.commons:commons-collections4:4.4'
+    implementation 'org.apache.commons:commons-lang3:3.17.0'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+}

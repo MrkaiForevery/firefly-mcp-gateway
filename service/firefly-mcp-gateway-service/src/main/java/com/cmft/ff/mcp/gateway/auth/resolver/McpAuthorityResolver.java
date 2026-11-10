@@ -1,0 +1,139 @@
+package com.cmft.ff.mcp.gateway.auth.resolver;
+
+import com.cmft.ff.mcp.gateway.auth.AbstractBlackListParserHandler;
+import com.cmft.ff.mcp.gateway.auth.PermissionSearchEngine;
+import com.cmft.ff.mcp.gateway.entity.AuthBlackListMappingDO;
+import com.cmft.ff.mcp.gateway.entity.AuthMcpCommonInfo;
+import com.cmft.ff.mcp.gateway.entity.ClientKeyBindRolePolicyStruct;
+import com.cmft.ff.mcp.gateway.entity.RoleBindElementPolicyDO;
+import com.cmft.ff.mcp.gateway.enums.McpSupportShareTypeEnums;
+import com.cmft.ff.mcp.gateway.repository.AuthBlackListMappingRepository;
+import com.cmft.ff.mcp.gateway.repository.ClientKeyBindRolePolicyRepository;
+import com.cmft.ff.mcp.gateway.repository.RoleBindElementPolicyRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Component
+@RequiredArgsConstructor
+public class McpAuthorityResolver {
+
+    private final RoleBindElementPolicyRepository roleBindElementPolicyRepository;
+    private final ClientKeyBindRolePolicyRepository clientKeyBindRolePolicyRepository;
+    private final AuthBlackListMappingRepository authBlackListMappingRepository;
+
+    private final PermissionSearchEngine permissionSearchEngine;
+
+    public Set<String> resolveAuthElements(AuthMcpCommonInfo authInfo, McpSupportShareTypeEnums supportShareTypeEnums) {
+        if (McpSupportShareTypeEnums.equalsByTypeKey(McpSupportShareTypeEnums.MCP_TOOLS_TYPE,supportShareTypeEnums)){
+           return resolveMcpBizTools(authInfo);
+        }
+
+        if (McpSupportShareTypeEnums.equalsByTypeKey(McpSupportShareTypeEnums.MCP_RESOURCES_TYPE,supportShareTypeEnums)){
+            return resolveMcpBizResources(authInfo);
+        }
+
+        if (McpSupportShareTypeEnums.equalsByTypeKey(McpSupportShareTypeEnums.MCP_PROMPT_TYPE,supportShareTypeEnums)){
+            return resolveMcpBizPrompts(authInfo);
+        }
+
+        return Set.of();
+    }
+
+    /**
+     * 根据commonInfo 解析mcpToolsRoles权限，获取对应权限范围内的可操作mcpTools
+     * @return 过滤后的mcpToolsRoles列表
+     */
+    private Set<String> resolveMcpBizTools(AuthMcpCommonInfo commonInfo) {
+        //获取对应的权限角色列表
+        List<ClientKeyBindRolePolicyStruct> baseAuthRoles =  clientKeyBindRolePolicyRepository.findBaseAuthRoles(commonInfo.getClientTypeEnum().getTypeKey(), commonInfo.getClientMappingKeyJsonList());
+        // 默认拒绝
+        if (baseAuthRoles.isEmpty()) return Collections.emptySet();
+        Set<String> roleCodeSet = baseAuthRoles.stream()
+                .map(ClientKeyBindRolePolicyStruct::getBindRoleCode)
+                .collect(Collectors.toSet());
+
+        // 获取所有相关role-auth策略矩阵数据
+        List<RoleBindElementPolicyDO> basePolicies = roleBindElementPolicyRepository.findPoliciesByRoles(roleCodeSet);
+        if (basePolicies.isEmpty()) return Collections.emptySet();
+        Set<String> baseElementCodeSet = basePolicies.stream()
+                .map(RoleBindElementPolicyDO::getElementCode)
+                .collect(Collectors.toSet());
+
+        //用户黑名单过滤
+        List<AuthBlackListMappingDO> allBaseBlackList = authBlackListMappingRepository.findAllBlackListByClientType(commonInfo.getClientTypeEnum().getTypeKey());
+
+        //黑名单处理逻辑
+        AbstractBlackListParserHandler blackListHandler = permissionSearchEngine.findBlackListHandlerByClientKeyEnum(commonInfo.getClientTypeEnum());
+        Map<String, List<String>> allBaseBlackMap = blackListHandler.parserBlackList(allBaseBlackList);
+
+        //传入本身userId,过滤掉黑名单里面的权限
+        List<String> userIdJsonList = commonInfo.getBlackMappingKeyJsonList();
+        Set<String> resultSet = blackListHandler.doFilter(userIdJsonList, allBaseBlackMap, baseElementCodeSet);
+
+        return resultSet;
+    }
+
+    private Set<String> resolveMcpBizResources(AuthMcpCommonInfo commonInfo) {
+        //获取对应的权限角色列表
+        List<ClientKeyBindRolePolicyStruct> baseAuthRoles =  clientKeyBindRolePolicyRepository.findBaseAuthRoles(commonInfo.getClientTypeEnum().getTypeKey(), commonInfo.getClientMappingKeyJsonList());
+        // 默认拒绝
+        if (baseAuthRoles.isEmpty()) return Collections.emptySet();
+        Set<String> roleCodeSet = baseAuthRoles.stream()
+                .map(ClientKeyBindRolePolicyStruct::getBindRoleCode)
+                .collect(Collectors.toSet());
+        // 获取所有相关role-auth策略矩阵数据
+        List<RoleBindElementPolicyDO> basePolicies = roleBindElementPolicyRepository.findPoliciesByRoles(roleCodeSet);
+        if (basePolicies.isEmpty()) return Collections.emptySet();
+        Set<String> baseElementCodeSet = basePolicies.stream()
+                .map(RoleBindElementPolicyDO::getElementCode)
+                .collect(Collectors.toSet());
+
+        //用户黑名单过滤
+        List<AuthBlackListMappingDO> allBaseBlackList = authBlackListMappingRepository.findAllBlackListByClientType(commonInfo.getClientTypeEnum().getTypeKey());
+
+        //黑名单处理逻辑
+        AbstractBlackListParserHandler blackListHandler = permissionSearchEngine.findBlackListHandlerByClientKeyEnum(commonInfo.getClientTypeEnum());
+        Map<String, List<String>> allBaseBlackMap = blackListHandler.parserBlackList(allBaseBlackList);
+
+        //传入本身userId,过滤掉黑名单里面的权限
+        List<String> userIdJsonList = commonInfo.getBlackMappingKeyJsonList();
+        Set<String> resultSet = blackListHandler.doFilter(userIdJsonList, allBaseBlackMap, baseElementCodeSet);
+
+        return resultSet;
+    }
+
+    private Set<String> resolveMcpBizPrompts(AuthMcpCommonInfo commonInfo) {
+        //获取对应的权限角色列表
+        List<ClientKeyBindRolePolicyStruct> baseAuthRoles =  clientKeyBindRolePolicyRepository.findBaseAuthRoles(commonInfo.getClientTypeEnum().getTypeKey(), commonInfo.getClientMappingKeyJsonList());
+        // 默认拒绝
+        if (baseAuthRoles.isEmpty()) return Collections.emptySet();
+        Set<String> roleCodeSet = baseAuthRoles.stream()
+                .map(ClientKeyBindRolePolicyStruct::getBindRoleCode)
+                .collect(Collectors.toSet());
+        // 获取所有相关role-auth策略矩阵数据
+        List<RoleBindElementPolicyDO> basePolicies = roleBindElementPolicyRepository.findPoliciesByRoles(roleCodeSet);
+        if (basePolicies.isEmpty()) return Collections.emptySet();
+        Set<String> baseElementCodeSet = basePolicies.stream()
+                .map(RoleBindElementPolicyDO::getElementCode)
+                .collect(Collectors.toSet());
+
+        //用户黑名单过滤
+        List<AuthBlackListMappingDO> allBaseBlackList = authBlackListMappingRepository.findAllBlackListByClientType(commonInfo.getClientTypeEnum().getTypeKey());
+
+        //黑名单处理逻辑
+        AbstractBlackListParserHandler blackListHandler = permissionSearchEngine.findBlackListHandlerByClientKeyEnum(commonInfo.getClientTypeEnum());
+        Map<String, List<String>> allBaseBlackMap = blackListHandler.parserBlackList(allBaseBlackList);
+
+        //传入本身userId,过滤掉黑名单里面的权限
+        List<String> userIdJsonList = commonInfo.getBlackMappingKeyJsonList();
+        Set<String> resultSet = blackListHandler.doFilter(userIdJsonList, allBaseBlackMap, baseElementCodeSet);
+
+        return resultSet;
+    }
+}

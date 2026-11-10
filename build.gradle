@@ -1,0 +1,196 @@
+buildscript {
+    ext {
+        requiredHttps = false
+        cmpayVersion = '4.13.x'
+        versionMngUrl = "http://gitlab.devops.cmft/publicProject/lemon/snippets/34/raw"
+        mavenUrl = 'http://nexus.devops.cmft/repository/maven-public/'
+        yidongyunUrl = 'https://ecloud.10086.cn/api/query/developer/nexus/repository/eCloudSDK/'
+    }
+    repositories {
+        maven {
+            url = "${mavenUrl}"
+            allowInsecureProtocol = true
+        }
+        maven { url = "${yidongyunUrl}" }
+    }
+    apply from: resources.text.fromInsecureUri(versionMngUrl)
+
+}
+
+plugins {
+    id 'org.springframework.boot' version '4.1.2' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
+    id 'io.freefair.maven-optional' version '8.2.0' apply false
+    id 'io.freefair.lombok' version '8.2.0' apply false
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+        maven { url = 'https://maven.aliyun.com/repository/public' }
+
+        // 如果你们发布 interface/constant 还需要内部仓库，保留这一个即可
+        maven {
+            url = 'http://nexus.devops.cmft/repository/maven-public/'
+            allowInsecureProtocol = true
+        }
+    }
+}
+
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'idea'
+    apply plugin: 'io.freefair.maven-optional'
+    apply plugin: "io.freefair.lombok"
+    apply plugin: 'io.spring.dependency-management'
+
+    version = '1.0.0'
+    group = 'com.cmft.firefly'
+
+    dependencyManagement {
+        imports {
+            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        }
+    }
+
+    configurations.all {
+        exclude group: 'org.springframework.cloud'
+        resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+            if (details.requested.group == 'ch.qos.logback') {
+                details.useVersion '1.5.34'
+            }
+            if (details.requested.group == 'org.apache.commons' && details.requested.name == 'commons-lang3') {
+                details.useVersion '3.14.0'
+            }
+            if (details.requested.group == 'io.netty') {
+                details.useVersion '4.1.136.Final'
+            }
+            if (details.requested.group == 'com.thoughtworks.xstream') {
+                details.useVersion '1.4.21'
+            }
+            if (details.requested.group == 'commons-beanutils' && details.requested.name == 'commons-beanutils') {
+                details.useVersion '1.11.0'
+            }
+            if (details.requested.group == 'org.bouncycastle') {
+                details.useVersion '1.79'
+            }
+            if (details.requested.group == 'org.projectlombok' && details.requested.name == 'lombok') {
+                details.useVersion '1.18.46'
+            }
+            if (details.requested.group == 'commons-fileupload' && details.requested.name == 'commons-fileupload') {
+                details.useVersion '1.6.0'
+            }
+
+            if (details.requested.group == 'commons-codec' && details.requested.name == 'commons-codec') {
+                details.useVersion '1.17.0'
+            }
+
+            if (details.requested.group == 'com.fasterxml.jackson.core' && details.requested.name == 'jackson-annotations') {
+                details.useVersion '2.21'
+            }
+
+            if (details.requested.group == 'org.apache.commons' && details.requested.name == 'commons-pool2') {
+                details.useVersion '2.12.1'
+            }
+            if (details.requested.group == 'com.alibaba' && details.requested.name == 'druid') {
+                details.useVersion '1.2.24'
+            }
+            if (details.requested.group == 'com.google.guava' && details.requested.name == 'guava') {
+                details.useVersion '33.0.0-jre'
+            }
+            if (details.requested.group == 'org.apache.commons' && details.requested.name == 'commons-text') {
+                details.useVersion '1.12.0'
+            }
+            if (details.requested.group == 'org.ehcache' && details.requested.name == 'ehcache') {
+                details.useVersion '3.10.8'
+            }
+            if (details.requested.group == 'org.mybatis' && details.requested.name == 'mybatis') {
+                details.useVersion '3.5.17'
+            }
+            if (details.requested.group == 'org.apache.tomcat.embed') {
+                details.useVersion '11.0.27'
+            }
+
+            if (details.requested.group == 'io.prometheus') {
+                details.useVersion '1.4.3'
+            }
+            if (details.requested.group == 'com.fasterxml' && details.requested.name == 'classmate') {
+                details.useVersion '1.7.0'
+            }
+            if (details.requested.group == 'com.fasterxml.woodstox' && details.requested.name == 'woodstox-core') {
+                details.useVersion '7.0.0'
+            }
+            if (details.requested.group == 'org.aspectj' && details.requested.name == 'aspectjweaver') {
+                details.useVersion '1.9.24'
+            }
+            if (details.requested.group == 'org.javassist' && details.requested.name == 'javassist') {
+                details.useVersion '3.30.2-GA'
+            }
+            if (details.requested.group == 'net.bytebuddy') {
+                details.useVersion '1.14.19'
+            }
+            if (details.requested.group == 'org.objenesis' && details.requested.name == 'objenesis') {
+                details.useVersion '3.3'
+            }
+            if (details.requested.group == 'com.alibaba' && details.requested.name == 'fastjson2') {
+                details.useVersion '2.0.65'
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            url = "${mavenUrl}"
+            allowInsecureProtocol = true
+        }
+    }
+
+    dependencies {
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        api("com.google.code.gson:gson:2.10.1")
+    }
+
+    // 使用现代化的 JDK 21 工具链配置
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+    }
+
+}
+
+configure(subprojects.findAll { it.name.matches('\\S*(-interface|-constant)\\S*') }) {
+    apply plugin: 'maven-publish'
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                versionMapping {
+                    usage('java-runtime') {
+                        fromResolutionResult()
+                    }
+                }
+                from components.java
+            }
+        }
+        repositories {
+            maven {
+                allowInsecureProtocol = true
+                def releasesRepoUrl = 'http://nexus.devops.cmft/repository/firefly-mixed/'
+                def snapshotsRepoUrl = 'http://nexus.devops.cmft/repository/firefly-snapshots/'
+                def nexusUserName = 'jiqiren-firefly'
+                def nexusPassword = 'jiqiren-firefly'
+                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+                credentials {
+                    username = nexusUserName
+                    password = nexusPassword
+                }
+            }
+        }
+    }
+}
+
+description = 'firefly mcp gateway application'

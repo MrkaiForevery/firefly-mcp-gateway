@@ -1,0 +1,89 @@
+package com.cmft.ff.mcp.gateway.auth.handler;
+
+import com.cmft.ff.mcp.gateway.auth.AbstractClientAuthHandler;
+import com.cmft.ff.mcp.gateway.entity.AuthMcpCommonInfo;
+import com.cmft.ff.mcp.gateway.enums.McpSupportClientTypeEnums;
+import com.cmft.ff.mcp.gateway.parser.IdentityTokenParser;
+import io.modelcontextprotocol.common.McpTransportContext;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.json.JsonMapper;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class DifyClientAuthHandler extends AbstractClientAuthHandler {
+
+    private static final McpSupportClientTypeEnums clientTypeEnum = McpSupportClientTypeEnums.DIFY_AGENT_CLIENT_TYPE;
+
+    private final JsonMapper jsonMapper;
+    private final IdentityTokenParser identityTokenParser;
+
+    @Override
+    public McpTransportContext extractAuthElementToMcpContext(HttpServletRequest request) {
+        //提取 Header里面的参数
+        String clientType = request.getHeader("The-Client-Type");
+        //todo 这里要注意X-Agent-ID为key可能会被框架本身的元数据值覆盖
+        String agentId = request.getHeader("DF-Agent-ID");
+        String token = request.getHeader("DF-SSO-Token");
+        //依赖token校验身份信息
+        Boolean checkResult = identityTokenParser.checkIdentity(token);
+        if (!checkResult) {
+            log.error("clientType={},agentId={},token={}的客户端连接失败，原因:身份认证校验失败！！！",clientType,agentId,token);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "连接失败,原因:身份认证校验失败！！！");
+        }
+        //从token中解析角色
+        Set<String> userRoles = identityTokenParser.parseDifyUserTokenRoles(token);
+        String userId = identityTokenParser.parseDifyUserId(token);
+        return McpTransportContext.create(Map.of(
+                "clientType",clientType,
+                "agentId", agentId != null ? agentId : "unknown",
+                "userId", userId,
+                "userRoles", userRoles
+        ));
+    }
+
+    @Override
+    public AuthMcpCommonInfo buildMcpContextAuthObject(McpTransportContext mcpTransportContext) {
+        // 从 Context 中读取由 contextExtractor 放入的身份信息
+        String agentId = (String) mcpTransportContext.get("agentId");
+        String userId = (String) mcpTransportContext.get("userId");
+        Set<String> userRoles = (Set<String>) mcpTransportContext.get("userRoles");
+
+        //构造黑名单检查keyList
+        List<String> userIdList = List.of(userId);
+        Map<String, Object> userIdMap = Map.of("user_id_list", userIdList);
+        String blackUserIdCheckJson = jsonMapper.writeValueAsString(userIdMap);
+        List<String> blackJsonList = new ArrayList<>();
+        blackJsonList.add(blackUserIdCheckJson);
+
+        //构造客户端映射权限roleKeyList
+        List<String> roleKeyJsonList = new ArrayList<>();
+        userRoles.forEach(role -> {
+            Map<String, String> roleMap = Map.of("agent_id", agentId, "user_role", role);
+            String roleJson = jsonMapper.writeValueAsString(roleMap);
+            roleKeyJsonList.add(roleJson);
+        });
+
+        return AuthMcpCommonInfo.builder()
+                .clientTypeEnum(getHandleClientType())
+                .blackMappingKeyJsonList(blackJsonList)
+                .clientMappingKeyJsonList(roleKeyJsonList)
+                .build();
+    }
+
+
+    @Override
+    public McpSupportClientTypeEnums getHandleClientType() {
+        return this.clientTypeEnum;
+    }
+}

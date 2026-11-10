@@ -1,0 +1,13 @@
+pluginManagement {
+    repositories {
+        maven {
+            url = 'http://nexus.devops.cmft/repository/maven-public/'
+            allowInsecureProtocol = true
+        }
+        gradlePluginPortal()
+    }
+}
+include 'app:firefly-mcp-gateway-app'
+include 'interface:firefly-mcp-gateway-interface'
+include 'service:firefly-mcp-gateway-service'
+
