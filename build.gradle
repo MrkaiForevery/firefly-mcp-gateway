@@ -7,10 +7,14 @@ buildscript {
     }
 
     repositories {
+        mavenCentral()
+        maven { url 'https://repo.spring.io/milestone' }
         maven {
             url = "${mavenUrl}"
             allowInsecureProtocol = true
         }
+//        // 或者用阿里云镜像加速
+//        maven { url = uri("https://maven.aliyun.com/repository/public") }
     }
 
     apply from: resources.text.fromInsecureUri(versionMngUrl)

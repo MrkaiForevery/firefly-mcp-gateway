@@ -1,5 +1,6 @@
 subprojects {
     dependencies {
+        api("com.cmpay:lemon-framework-starter-cloud")
         runtimeOnly 'com.mysql:mysql-connector-j'
         implementation("com.cmpay:lemon-framework-starter-actuator-security")
     }

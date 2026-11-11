@@ -1,13 +1,11 @@
 package com.cmft.ff.mcp.gateway;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import com.cmpay.lemon.common.LemonFramework;
+import com.cmpay.lemon.framework.LemonBootApplication;
 
-@SpringBootApplication
+@LemonBootApplication
 public class FireflyMcpGatewayApplication {
-
     public static void main(String[] args) {
-            SpringApplication.run(FireflyMcpGatewayApplication.class, args);
+        LemonFramework.run(FireflyMcpGatewayApplication.class, args);
     }
-
 }

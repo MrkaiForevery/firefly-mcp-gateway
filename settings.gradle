@@ -7,6 +7,30 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
+// 👇 新增这个代码块，专门用于管理业务 Jar 包的下载仓库
+dependencyResolutionManagement {
+    // 强制要求所有模块只能从这里配置的仓库下载，禁止子模块自己乱配
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+
+    repositories {
+        // 1. 阿里云镜像（速度最快，优先尝试）
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
+
+        // 2. 公司内部仓库（下载你们自己的私有包）
+        maven {
+            url = uri("http://nexus.devops.cmft/repository/maven-public/")
+            allowInsecureProtocol = true
+        }
+
+        // 3. Maven 中央仓库（作为兜底，防止阿里云镜像还没同步最新版本）
+        mavenCentral()
+    }
+}
+
+include 'app:firefly-mcp-gateway-app'
+include 'interface:firefly-mcp-gateway-interface'
+include 'service:firefly-mcp-gateway-service'
 include 'app:firefly-mcp-gateway-app'
 include 'interface:firefly-mcp-gateway-interface'
 include 'service:firefly-mcp-gateway-service'
