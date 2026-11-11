@@ -50,7 +50,8 @@ subprojects {
 
 
     configurations.all {
-        exclude group: 'org.springframework.cloud'
+        exclude group: 'org.springframework.cloud', module: 'spring-cloud-starter-netflix-eureka-client'
+        exclude group: 'com.netflix.eureka', module: 'eureka-client'
         resolutionStrategy.eachDependency { DependencyResolveDetails details ->
             if (details.requested.group == 'ch.qos.logback') {
                 details.useVersion '1.5.34'
